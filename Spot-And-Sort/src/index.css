@@ -1,0 +1,48 @@
+@import "tailwindcss";
+/* Add this to your main CSS file (e.g., src/index.css) */
+/*@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');*/
+/* Add this to your main CSS file (e.g., src/index.css) */
+/* Custom Scrollbar for columns */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px; /* For vertical scrollbars */
+  height: 8px; /* For horizontal scrollbars */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-bg, #2d3748); /* Dark track in dark mode */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-bg, #4a5568); /* Darker thumb in dark mode */
+  border-radius: 10px;
+  border: 2px solid var(--scrollbar-track-bg, #2d3748); /* Border to make thumb smaller */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover-bg, #606f8b);
+}
+
+/* Adjust for light mode */
+.light-mode .custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.light-mode .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #888;
+  border: 2px solid #f1f1f1;
+}
+.light-mode .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Make sure the App component's wrapper can apply the light-mode class dynamically */
+.bg-white.text-gray-900.light-mode { /* This part would be applied by App.jsx */
+  --scrollbar-track-bg: #f1f1f1;
+  --scrollbar-thumb-bg: #888;
+  --scrollbar-thumb-hover-bg: #555;
+}
+.bg-gray-900.text-white { /* This part would be applied by App.jsx */
+  --scrollbar-track-bg: #2d3748;
+  --scrollbar-thumb-bg: #4a5568;
+  --scrollbar-thumb-hover-bg: #606f8b;
+}
