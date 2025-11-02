@@ -1,9 +1,11 @@
+//server.js
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-// const dotenv = require('dotenv'); // Uncomment if you use a .env file
-// dotenv.config();
+ const dotenv = require('dotenv'); // Uncomment if you use a .env file
+ dotenv.config();
 
 const authRoutes = require('./routes/authRoutes');
 const issueRoutes = require('./routes/issueRoutes');

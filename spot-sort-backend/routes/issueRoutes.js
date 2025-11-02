@@ -219,7 +219,107 @@ router.post('/anonymous', upload.single('issueImage'), async (req, res) => {
     }
 });
 
+// @route POST /api/issues 
+// @desc Create a new issue report (Authenticated user)
+// @access Private (Requires JWT via 'protect' middleware)
+router.post('/', protect, upload.single('issueImage'), async (req, res) => {
+    try {
+        // The 'protect' middleware ensures req.user is set with the logged-in user's details
+        const reporterId = req.user.id; 
+        
+        if (!req.file) {
+            return res.status(400).json({ message: 'Issue image is required.' });
+        }
 
+        const { title, issueType, description, lat, lng, zone } = req.body;
+
+        // Basic validation for required fields
+        if (!title || !issueType || !description || !lat || !lng || !zone) {
+            // Clean up the uploaded file if validation fails
+            fs.unlinkSync(req.file.path); 
+            return res.status(400).json({ message: 'Please provide all required fields (title, type, description, location, zone).' });
+        }
+        
+        // 1. Create the Issue record
+        const newIssue = new Issue({
+            ticketId: generateTicketId(issueType),
+            reporter: reporterId, // ⭐ LINKED TO AUTHENTICATED USER'S ID ⭐
+            issueType,
+            title,
+            description,
+            lat,
+            lng,
+            zone,
+            issueImageUrl: req.file.path, // Path from Multer upload
+        });
+
+        await newIssue.save();
+        
+        // 2. (Optional but good practice) Notify the user/reporter 
+        // We can fetch the user's email since we have their ID (req.user.id)
+        const reporter = await User.findById(reporterId).select('email'); 
+        if (reporter?.email) {
+             await sendReportIdEmail(reporter.email, newIssue.ticketId);
+        }
+
+        res.status(201).json({ 
+            success: true,
+            message: 'Authenticated report submitted successfully.', 
+            ticketId: newIssue.ticketId // Return the ID for the frontend success message
+        });
+
+    } catch (err) {
+        console.error("Authenticated Submission Error:", err);
+        // Clean up file if an error occurs after upload but before DB save
+        if (req.file?.path) fs.unlinkSync(req.file.path);
+        
+        // Handle Mongoose/DB validation errors
+        if (err.name === 'ValidationError') {
+            const message = Object.values(err.errors).map(val => val.message).join(', ');
+            return res.status(400).json({ message });
+        }
+        
+        res.status(500).json({ message: 'Failed to submit authenticated report.' });
+    }
+});
+
+
+// routes/issueRoutes.js - Add this new route
+
+// @route GET /api/issues/my-reports
+// @desc Get all issues reported by the currently logged-in citizen
+// @access Private (Citizen only)
+router.get('/my-reports', protect, async (req, res) => {
+    try {
+        // 'req.user.id' is set by the 'protect' middleware after token verification.
+        const userId = req.user.id; 
+
+        // Find all issues where the 'reporter' field matches the logged-in user's ID
+        // Sort by most recent first
+        const issues = await Issue.find({ reporter: userId }).sort({ createdAt: -1 });
+
+        // Map the issues to the structure expected by the frontend
+        const formattedReports = issues.map(issue => ({
+            ticketId: issue.ticketId,
+            issueType: issue.issueType,
+            status: issue.status,
+            zone: issue.zone,
+            date: issue.createdAt, // Use the creation date for "Date Reported"
+            description: issue.description,
+            // Include other fields if needed, like image URLs, for the modal
+            issueImageUrl: issue.issueImageUrl,
+            resolutionImageUrl: issue.resolutionImageUrl,
+        }));
+
+        res.json(formattedReports);
+
+    } catch (err) {
+        console.error("Error fetching user reports:", err);
+        // Status 401/403 would be caught by the frontend on the token check,
+        // but 500 covers server-side DB errors.
+        res.status(500).json({ message: 'Failed to retrieve your reported issues.' });
+    }
+});
 // @route GET /api/issues/track/:ticketId (Public Tracking)
 router.get('/track/:ticketId', async (req, res) => {
     try {
