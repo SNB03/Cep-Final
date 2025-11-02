@@ -16,6 +16,7 @@ const App = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState('');
+  const [userEmail, setUserEmail] = useState(''); // 🚀 ADDED: State for email
   const [isDayTheme, setIsDayTheme] = useState(false);
   const [scrollToId, setScrollToId] = useState(null);
   const [error, setError] = useState(null);
@@ -35,29 +36,37 @@ const App = () => {
     // Check for existing token in localStorage on mount
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('userRole');
-    if (token && role) {
+    const email = localStorage.getItem('userEmail'); // 🚀 ADDED: Get email
+    if (token && role && email) {
       setIsLoggedIn(true);
       setUserRole(role);
+      setUserEmail(email); // 🚀 ADDED: Set email
       if (role === 'citizen') {
         setActiveSection('dashboard');
       }
     }
   }, []);
 
-  const handleLoginSuccess = (token, role) => {
+  // 🚀 FIX: Updated to accept and store user's email
+  const handleLoginSuccess = (token, role, email) => {
     localStorage.setItem('token', token);
     localStorage.setItem('userRole', role);
+    localStorage.setItem('userEmail', email); // 🚀 ADDED: Store email
     setUserRole(role);
+    setUserEmail(email); // 🚀 ADDED: Set email state
     setIsLoggedIn(true);
     setActiveSection(role === 'citizen' ? 'dashboard' : 'home');
     setError(null);
   };
 
+  // 🚀 FIX: Updated to remove user's email
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userEmail'); // 🚀 ADDED: Remove email
     setIsLoggedIn(false);
     setUserRole('');
+    setUserEmail(''); // 🚀 ADDED: Clear email state
     setActiveSection('home');
   };
   

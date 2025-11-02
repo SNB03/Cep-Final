@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/config';
-import Button from '../Common/Button'; // Assuming Button component path
+import Button from '../Common/Button';
 
 // --- ICONS (Inline SVG for simplicity) ---
 const ActivityIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>);
@@ -27,15 +27,15 @@ const processIssues = (issues) => {
         return INITIAL_METRICS;
     }
     const totalIssues = issues.length;
-    const resolvedIssues = issues.filter(i => i.status === 'Resolved' || i.status === 'Closed').length;
-    const pendingIssues = issues.filter(i => i.status !== 'Resolved' && i.status !== 'Closed').length;
+    const resolvedIssues = issues.filter(i => i.status === 'Closed').length;
+    const pendingIssues = issues.filter(i => i.status !== 'Closed').length;
 
     const breakdownMap = issues.reduce((acc, issue) => {
         const type = issue.issueType ? issue.issueType.toLowerCase() : 'other';
         const displayType = type.charAt(0).toUpperCase() + type.slice(1);
         acc[type] = acc[type] || { type: displayType, count: 0, pending: 0 };
         acc[type].count++;
-        if (issue.status !== 'Resolved' && issue.status !== 'Closed') {
+        if (issue.status !== 'Closed') {
             acc[type].pending++;
         }
         return acc;
@@ -46,7 +46,7 @@ const processIssues = (issues) => {
         const status = issue.status;
         acc[zone] = acc[zone] || { zone, resolved: 0, backlog: 0, avgTime: 4.0 };
         
-        if (status === 'Resolved' || status === 'Closed') {
+        if (status === 'Closed') {
             acc[zone].resolved++;
         } else {
             acc[zone].backlog++;
@@ -167,35 +167,43 @@ const AllIssuesTable = ({ reports, isDayTheme, refreshData }) => {
         }
     };
 
+    // 🚀 FIX: Function to correct Windows paths in URLs for alerts
+    const formatUrlPath = (path) => {
+        if (!path) return 'N/A';
+        // Replaces backslashes with forward slashes and prefixes with base URL
+        return `http://localhost:5000/${path.replace(/\\/g, '/')}`;
+    };
+
+
     // ACTION: Reassigns the issue to a new zone/user
     const handleReassign = async (report) => {
         const newZone = prompt(`Reassign Issue ${report.ticketId} from ${report.zone}.\nEnter new Zone:`);
+        // On reassign, the status should be reset to Pending
+        const newStatus = 'Pending'; 
+
         if (newZone) {
             try {
-                // PUT /api/issues/:ticketId/status
+                // PUT /api/issues/:ticketId/status (Used by Admin for reassigning zone/status)
                 await api.put(`/issues/${report.ticketId}/status`, { 
-                    status: 'Pending', 
+                    status: newStatus, 
                     zone: newZone, 
                 });
-                alert(`Issue ${report.ticketId} successfully reassigned to ${newZone} and status reset.`);
+                alert(`Issue ${report.ticketId} successfully reassigned to ${newZone} and status reset to ${newStatus}.`);
                 refreshData(); // Refresh the entire dashboard data
             } catch (err) {
                 console.error("Reassign Error:", err);
-                alert(`Failed to reassign issue. Check console for details. Error: ${err.response?.data?.message || 'Server error'}`);
+                alert(`Failed to reassign issue. Error: ${err.response?.data?.message || 'Server error'}`);
             }
         }
     };
 
     // ACTION: Admin reviews and potentially force-closes the issue
     const handleViewEdit = (report) => {
-        const imageAlert = report.issueImageUrl 
-            ? `Issue Image available at: ${report.issueImageUrl}\n` 
-            : 'No Issue Image available.\n';
-        const resolutionAlert = report.resolutionImageUrl 
-            ? `Resolution Image available at: ${report.resolutionImageUrl}\n` 
-            : 'No Resolution Image available.\n';
-
-        alert(`${imageAlert}${resolutionAlert}Zone: ${report.zone}, Status: ${report.status}`);
+        // 🚀 FIX: Use the URL formatting helper for images in the alert
+        const issueImage = formatUrlPath(report.issueImageUrl);
+        const resolutionImage = formatUrlPath(report.resolutionImageUrl);
+        
+        alert(`Issue ID: ${report.ticketId}\nTitle: ${report.title}\nDescription: ${report.description}\nStatus: ${report.status}\nZone: ${report.zone}\n\nIssue Image: ${issueImage}\nResolution Image: ${resolutionImage}`);
 
         // Admin can finalize and close issues that are 'Awaiting Verification'
         if (report.status === 'Awaiting Verification') {

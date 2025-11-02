@@ -225,7 +225,8 @@ router.post('/anonymous', upload.single('issueImage'), async (req, res) => {
 router.post('/', protect, upload.single('issueImage'), async (req, res) => {
     try {
         // The 'protect' middleware ensures req.user is set with the logged-in user's details
-        const reporterId = req.user.id; 
+        // 🚀 FIX: Changed req.user.id to req.user._id to match the 'protect' middleware
+        const reporterId = req.user._id; 
         
         if (!req.file) {
             return res.status(400).json({ message: 'Issue image is required.' });
@@ -292,7 +293,8 @@ router.post('/', protect, upload.single('issueImage'), async (req, res) => {
 router.get('/my-reports', protect, async (req, res) => {
     try {
         // 'req.user.id' is set by the 'protect' middleware after token verification.
-        const userId = req.user.id; 
+        // 🚀 FIX: Changed req.user.id to req.user._id to match the 'protect' middleware
+        const userId = req.user._id; 
 
         // Find all issues where the 'reporter' field matches the logged-in user's ID
         // Sort by most recent first
